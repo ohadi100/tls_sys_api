@@ -1,0 +1,949 @@
+/** \mainpage TLS Stream and Socket API
+ *
+ * <p><b>Release 1.2.0b<br/>
+ *    <b>17.05.22<br/>
+ * Copyright (c) 2022 Volkswagen AG. All Rights Reserved.</b></p>
+ *
+ *
+ * \section Motivation
+ * <p>
+ * Why this API is needed? For the TLS a underlying SSL-library must be used.
+ *  The used SSL-library depends on the platform specific implementation (e.g. Botan on ICAS1, WolfSSL on ICAS3, ...).
+ *  In additions the key management depends on the platform specific trust zone implementation,
+ *   where the secure key operations are performed. The trust zone implementations depends on the used SoC's.
+ *   All this specific platform implementations must be encapsulated for the application development.</p>
+ * <br/>
+ * <br/>
+ *
+ * <p>
+ * <b>Disclaimer:</b>
+ * The sole idea of the TLS-Lib reference implementation is to define the API and show that it could work.
+ * It should give the application developer an idea of how to use TLS-Lib using the provided API.
+ * This software was written as a proof of concept and is in no way intended to be used in a production environment: It may contain defects & security flaws, and is not fully tested.
+ * Be sure to not use the implementation itself for production usage, only the API.
+ * </p>
+ *
+ * \section Overview Communication
+ *  <br/>
+ *  <p>The diagram shows the example of the viwi based communication for some services.
+ *  For instance the service <b>distance</b> must be transported in a secure manor,
+ *  therefore the sSOA with TLS must be used (see the orange flow between the Distance Service Provider and the HMIs). </p>
+ *
+ * \image html "./../../img/Domain Security Layer (for ICAS) overview.png"
+ * \image latex "./../../img/Domain Security Layer (for ICAS) overview.png" "Domain Security Layer (for ICAS) overview"
+ *
+ *<br/>
+ *<br/>
+ * \section Components Using the API
+ *
+ * Basically the API can be used for the <br/>
+ * <ul>
+ * <li>	transparent proxy for the VIWI communication </li>
+ * <li>	Clint Domain Proxy for the MOD communication (Socks5 & MQTT) </li>
+ * <li>	GateWay for the MOD communication (Socks5 & MQTT) </li>
+ * </ul>
+ *
+ * \image html "./../../img/Domain Security Layer (for ICAS) Implementation Overview.png"
+ * \image latex "./../../img/Domain Security Layer (for ICAS) Implementation Overview.png" "Domain Security Layer Implementation overview"
+ *
+ *  \section _ MOD Special Handling
+ * <br/>
+ * <p>For the MOD CDP  (Client Domain Proxy) a <b>drop TLS</b> is needed,
+ * because the stream between the application and the backend is
+ * already TLS encrypted and this TLS stream must be tunneled between
+ * the CDP and the OCU. For the connection between the CDP and the OCU
+ * the TSL-PSK have to be used and must be encrypted as long as the
+ * tunneled data steam is stable. > </p>
+ * <br/>
+ *
+ * <p>Below the communication between an application using a MOD service
+ * and the backend service is shown. Logically the application will
+ * direct talk to the MOD service using TLS (please note this is connection
+ * will use the normal certificate based TLS handshake, which is different
+ * to the TLS-PSK handshake defined by the sSOA concept).
+ * Technically the application will not talk directly the backend service,
+ * but it will talk to the client domain proxy (CDP) which have to be located
+ * within the same execution environment (e.g. a virtual machine).
+ * From the CDP to the Gateway Proxy an tunnel is created where the TLS
+ * encrypted data stream is transferred.  This tunnel will also be encrypted by TSL-PSK.
+ * Since double encryption make no sense and the OCU has a very week CPU the
+ * TLS-PSK encryption can be dropped after the connection to the backend is successfully established. ></p>
+ *<br/>
+ * Therefore we have the basic requirements <br/>
+ * <ul>
+ * 	<li>The TSL-PSK encryption shall be droppable by the client</li>
+ *  <li>Dropping of the TSL-PSK encryption shall not lead to a data loss on the data stream.</li>
+ * </ul>
+ *
+ *
+ * \image html "./../../img/MOD Communictaion.png"
+ * \image latex "./../../img/MOD Communictaion.png" "MOD Communication with Socks"
+ *
+ *<br/>
+ *<br/>
+ * \section Releases
+ *  <br/>
+ *  <p>The API release and the reference implementation can be
+ *  found at
+ *  <b>"https://devstack.vwgroup.com/bitbucket/projects/E3THIRD/repos/e3_security_tslapi/" </b>
+ * <br/></p>
+ *
+ *
+<table>
+   <tr align="left">
+       <th>Version</th>
+       <th>Release Date</th>
+       <th>Branch</th>
+       <th>Tag</th>
+       <th>Notes</th>
+       </tr>
+        <tr>
+            <td>1.3.0r</td>
+            <td>07.02.24</td>
+            <td>api-1.3</td>
+            <td>v1.3.0r</td>
+            <td>
+                <ul>
+                    <li> improvement cmake find_package: check if target sysapi_tls::sysapi_tls (alias) already exits: Needed to be added manually, since this (alias) use case is not supported by default. </li>
+                </ul>
+            </td>
+        </tr>
+        <tr>
+            <td>1.3.0p</td>
+            <td>02.02.24</td>
+            <td>api-1.3</td>
+            <td>v1.3.0p</td>
+            <td>
+                <ul>
+                    <li> support of c++14/c++17 </li>
+                    <li> use wolfssl as independant product </li>
+                    <li> improvements of global variable handling </li>
+                    <li> generate cmake files for tls lib users </li>
+                    <li> fixed build issue for DEV_1PV0 </li>
+                </ul>
+            </td>
+        </tr>
+        <tr>
+            <td>1.3.0o</td>
+            <td>08.01.24</td>
+            <td>api-1.3</td>
+            <td>v1.3.0o</td>
+            <td>
+                <ul>
+                    <li> added wolfssl build flag '--enable-altcertchains'. This is needed to allows loading intermediate Certificate Authorities (CA’s) as trusted and ignoring no signer failures for CA’s up the chain to root. See issue IMAN-157131. </li>
+                    <li> fixed handling softfail/hardfail for legacy use case (handle as soft fail) </li>
+                    <li> upgrade wolfssl version to 5.6.4 </li>
+                </ul>
+            </td>
+        </tr>
+        <tr>
+            <td>1.3.0n</td>
+            <td>28.11.23</td>
+            <td>api-1.3</td>
+            <td>v1.3.0n</td>
+            <td>
+                <ul>
+                    <li> fixed DEV_1PV0 build error </li>
+                    <li> removed botan ref-impl </li>
+                    <li> fix implementation for legacy use case  </li>
+                </ul>
+            </td>
+        </tr>
+        <tr>
+            <td>1.3.0m</td>
+            <td>22.08.23</td>
+            <td>api-1.3</td>
+            <td>v1.3.0m</td>
+            <td>
+                <ul>
+                    <li> applying SCA checks on the TLS API </li>
+                    <li> fix local build problem </li>
+                    <li> fix and extend OCSP failure logs </li>
+                </ul>
+            </td>
+        </tr>
+        <tr>
+            <td>1.3.0l</td>
+            <td>12.07.23</td>
+            <td>api-1.3</td>
+            <td>v1.3.0l</td>
+            <td>
+                <ul>
+                    <li> rework of vwg::tls::initTLSLib() </li>
+                    <li> fix cappa build errors </li>
+                </ul>
+            </td>
+        </tr>
+        <tr>
+            <td>1.3.0k</td>
+            <td>08.06.23</td>
+            <td>api-1.3</td>
+            <td>v1.3.0k</td>
+            <td>
+                <ul>
+                    <li> add find_package cmake mechanism </li>
+                    <li> fix cappa ICC build </li>
+                    <li> fix products delivery configuration </li>
+                    <li> change logging to use the syslog logging lib </li>
+                </ul>
+            </td>
+        </tr>
+        <tr>
+            <td>1.3.0j</td>
+            <td>08.06.23</td>
+            <td>api-1.3</td>
+            <td>v1.3.0j</td>
+            <td>
+                <ul>
+                    <li> TLS will not establish a connection if the certificate does not match the provided server name </li>
+                </ul>
+            </td>
+        </tr>
+        <tr>
+            <td>1.3.0i</td>
+            <td>04.05.23</td>
+            <td>api-1.3</td>
+            <td>v1.3.0i</td>
+            <td>
+                <ul>
+                    <li> Removed OpenSSL dependency (IMAN-135360). </li>
+                    <li> Improved local test cases (IMAN-136255). </li>
+                    <li> Better usage of WolfSSL constants in the reference implementation (IMAN-136361). </li>
+                    <li> Bug fix regarding which certificates are checked for authinfo extension (IMAN-135386). </li>
+                </ul>
+            </td>
+        </tr>
+        <tr>
+            <td>1.3.0h</td>
+            <td>30.03.23</td>
+            <td>api-1.3</td>
+            <td>v1.3.0h</td>
+            <td>
+                <ul>
+                    <li> Extension of error logs in case of wolfssl failure </li>
+                    <li> Extension of error logs of the Revocation check and the Authentic time </li>
+                    <li> cleanup of build scripts </li>
+                </ul>
+            </td>
+        </tr>
+        <tr>
+            <td>1.3.0g</td>
+            <td>19.02.23</td>
+            <td>api-1.3</td>
+            <td>v1.3.0g</td>
+            <td>
+                <ul>
+                    <li>upgrade to WolfSSL 5.5.4</li>
+                    <li>the tls shall not require authInfo extension on root cert</li>
+                </ul>
+        </tr>
+        <tr>
+            <td>1.3.0f</td>
+            <td>19.01.22</td>
+            <td>api-1.3</td>
+            <td>v1.3.0f</td>
+            <td>
+                <ul>
+                    <li> build for ICC DEV_9SCR failed</li>
+                    <li> extension for TLSCipherSuiteUseCase "CSUSDefaultWithSoftFail" with OCSP <li> 
+                </ul>
+        </tr>
+        <tr>
+            <td>1.3.0e</td>
+            <td>12.01.22</td>
+            <td>api-1.3</td>
+            <td>v1.3.0e</td>
+            <td>
+                <ul>
+                    <li> Extend ref impl, documenatation and test suite for OCSP deletion handlingion requests</li>
+                    <li> Decode OCSP Response failed ( pointer is Null) </li>
+                    <li> close shall not block for robustness reasons </li>
+                    <li> update copyright note </li>
+                    <li> clarify GPLv2 license handling (tlsAPI-WS/test/tlsSimpleSample/src/wolfssl_cert_server.cpp) </li>
+                </ul>
+        </tr>
+        <tr>
+            <td>1.3.0d</td>
+            <td>12.12.22</td>
+            <td>api-1.3</td>
+            <td>v1.3.0d</td>
+            <td>
+                <ul>
+                    <li> upgrade to wolfssl 5.5.3 </li>
+                </ul>
+        </tr>
+        <tr>
+            <td>1.3.0c</td>
+            <td>08.12.22</td>
+            <td>api-1.3</td>
+            <td>v1.3.0c</td>
+            <td>
+                <ul>
+                    <li> DoCache works, but reading from cache leads to verification error</li>
+                    <li> OCSP insert and remove from cache issue</li>
+                    <li> TLS API 1.3.0b reference implementation has a misspelled return code in TLSEngine.cpp</li>
+                </ul>
+        </tr>
+       <tr>
+            <td>1.3.0b</td>
+            <td>20.10.22</td>
+            <td>api-1.3</td>
+            <td>v1.3.0b</td>
+            <td>
+                <ul>
+                    <li> Unintialized bytes in vwg::tls::impl::InternIOStream::Connect()</li>
+                    <li> Thread Manager need to see the native thread name.</li>
+                    <li> fix in botan engine feed function buffer length check</li>
+                </ul>
+        </tr>
+      <tr>
+            <td>1.3.0a</td>
+            <td>11.09.22</td>
+            <td>SOP_ME4_2022</td>
+            <td>1.3.0a</td>
+            <td>
+                <ul>
+                    <li>Extension of the ref-impl. for extension of the OCSP Proxy handling for persistent storage</li>
+                </ul>
+        </tr> 
+      <tr>
+            <td>1.2.0b</td>
+            <td>17.05.22</td>
+            <td>SOP_ME4_2022</td>
+            <td>1.2.0b</td>
+            <td>
+                <ul>
+                    <li>Merge changes from SOP_ME4_2022 1.0.0k</li>
+                    <li>Move connectionLoggingName to Parent</li>
+                </ul>
+        </tr>  
+      	<tr>
+            <td>1.2.0a</td>
+            <td>28.04.22</td>
+            <td>SOP_ME4_2022</td>
+            <td>1.2.0a</td>
+            <td>
+                <ul>
+                    <li>Add client information string for logging</li>
+                    <li>Register Wolfssl trace callback to TLS-Library</li>
+                    <li>Direct TLS-Library logs into sys-log</li>
+                    <li>Add makefile cappa dependencies to SYSAPI_COLLECTION and FND_LOG</li>
+                    <li>AAdd TLSCipherSuiteUseCasesSettings with Softfail Implemention </li>
+                </ul>
+        </tr>  
+        <tr>
+            <td>1.1.0k</td>
+            <td>16.05.22</td>
+            <td>SOP_ME3_2021</td>
+            <td>v1.1.0k</td>
+            <td>
+                <ul>
+                    <li>Fix Botan engines (cert + psk) feed() remove internal buffer size constrain</li>
+                    <li>copy *.tsv files for packaging</li>
+                    <li>Handle Cmake error - do not ignore</li>
+                </ul>
+        </tr>  
+     	<tr>
+            <td>1.1.0j</td>
+            <td>29.03.22</td>
+            <td>SOP_ME3_2021</td>
+            <td>v1.1.0j</td>
+            <td>
+                <ul>
+                    <li>Added Android build variant (linux_amd64_icc_sdk), for arm64-v8a, under Clang</li>
+                </ul>
+        </tr>  
+	    <tr>
+            <td>1.1.0i</td>
+            <td>10.03.22</td>
+            <td>SOP_ME3_2021</td>
+            <td>v1.1.0i</td>
+            <td>
+                <ul>
+                    <li>Migrated to wolfssl version 5.2.0</li>
+                    <li>A few changes made in order to switch from wolfssl version 4.8.1 to 5.2.0</li>
+                </ul>
+        </tr>  
+                <tr>
+                <td>1.1.0h</td>
+                <td>06.03.22</td>
+                <td>SOP_ME3_2021</td>
+                <td>v1.1.0h</td>
+                <td>
+                    <ul>
+                        <li>Added TLSAPI_ENABLE_OE3_SPECIAL_CERT_HANLING for special handling for the O3</li>
+                        <li>TrM OCSP Caching does not work due to Cache-IDs not being deterministic</li>
+                    </ul>
+                </td>
+     </tr>
+     </tr>
+                     <tr>
+                     <td>1.1.0g</td>
+                     <td>24.01.22</td>
+                     <td>SOP_ME3_2021</td>
+                     <td>v1.1.0g</td>
+                     <td>
+                         <ul>
+                             <li>Fixed evaluation of public key pins according to RFC 7469, Sec.2.6.</li>
+                             <li>Fixed hash pinning tests in the components tests.</li>
+                         </ul>
+                     </td>
+     </tr>
+     </tr>
+            <tr>
+            <td>1.1.0f</td>
+            <td>25.11.21</td>
+            <td>SOP_ME3_2021</td>
+            <td>v1.1.0f</td>
+            <td>
+                <ul>
+                    <li>Updated gcc version 9.3.0.</li>
+                    <li>Cleanup API documentation and fixed clang format.</li>
+                    <li>Fixed CI/CD issues.</li>
+                </ul>
+            </td>
+    </tr>
+            <tr>
+            <td>1.1.0e</td>
+            <td>23.09.21</td>
+            <td>SOP_ME3_2021</td>
+            <td>v1.1.0e</td>
+            <td>
+                <ul>
+                    <li>Fixed linkage error.</li>
+                </ul>
+            </td>
+    </tr>
+    </tr>
+            <tr>
+            <td>1.1.0d</td>
+            <td>13.09.21</td>
+            <td>SOP_ME3_2021</td>
+            <td>v1.1.0d</td>
+            <td>
+                <ul>
+                    <li>Added workaround to BEs scripts for CI/CD.</li>
+                </ul>
+            </td>
+    </tr>
+   </tr>
+       <tr>
+       <td>1.1.0</td>
+       <td>29.08.21</td>
+       <td>SOP_ME3_2021</td>
+       <td>v1.1.0c</td>
+       <td>
+           <ul>
+               <li>Updated to wolfssl-4.8.1.</li>
+               <li>Fixed hash pinning implementation due to crashing.</li>
+               <li>Deployment CI/CD scripts.</li>
+           </ul>
+       </td>
+   </tr>
+   </tr>
+        <tr>
+        <td>1.1.0b</td>
+        <td>07.07.21</td>
+        <td>SOP_ME3_2021</td>
+        <td>v1.1.0b</td>
+        <td>
+            <ul>
+                <li>Disable the OCSP requests in case of hard fail fallback mecahnism by enabling the flag ICAS3_NO_OCSP_HARD_FAIL due to ICAS3.</li>
+            </ul>
+        </td>
+    </tr>
+    </tr>
+        <tr>
+        <td>1.1.0</td>
+        <td>31.05.21</td>
+        <td>SOP_ME3_2021</td>
+        <td>v1.1.0a</td>
+        <td>
+            <ul>
+                <li>Added OCSP proxy client/server callbacks.</li>
+            </ul>
+        </td>
+    </tr>
+    </tr>
+        <tr>
+        <td>1.1.0RC4b</td>
+        <td>22.04.21</td>
+        <td>SOP_ME3_2021</td>
+        <td>v1.1.0RC4b</td>
+        <td>
+            <ul>
+                <li>Updated to WolfSSL-4.7.0.</li>
+                <li>Fixed memory leaks and valgrind warnings.</li>
+                <li>Added more unit tests.</li>
+            </ul>
+        </td>
+    </tr>
+    </tr>
+        <tr>
+        <td>1.1.0RC4a</td>
+        <td>01.03.21</td>
+        <td>SOP_ME3_2021</td>
+        <td>v1.1.0RC4a</td>
+        <td>
+            <ul>
+                <li>Fixed the key size check in WolfSSL PSKCallback to be no bigger than keyMaxLength.</li>
+                <li>Removed const from "toIANAProtocolName" bool return value.</li>
+            </ul>
+        </td>
+    </tr>
+    </tr>
+        <tr>
+        <td>1.1.0RC3a</td>
+        <td>11.02.21</td>
+        <td>SOP_ME3_2021</td>
+        <td>v1.1.0RC3a</td>
+        <td>
+            <ul>
+                <li>Extension of use cases for cipher suite selection.</li>
+                <li>Added OCSP fallback mechanism.</li>
+                <li>Improved Unit Test (85% coverage).</li>
+                <li>Improved component test.</li>
+                <li>Improve connection process - success is depend on Hash-Pinning check in WolfSSL.</li>
+            </ul>
+        </td>
+    </tr>
+    </tr>
+        <tr>
+        <td>1.1.0RC2a</td>
+        <td>09.12.20</td>
+        <td>SOP_ME3_2021</td>
+        <td>v1.1.0RC2a</td>
+        <td>
+            <ul>
+                <li>Added authentic time check.</li>
+            </ul>
+        </td>
+    </tr>
+    </tr>
+        <tr>
+        <td>1.1.0RC1a</td>
+        <td>30.11.20</td>
+        <td>SOP_ME3_2021</td>
+        <td>v1.1.0RC1a</td>
+        <td>
+            <ul>
+                <li>Added alpn support.</li>
+            </ul>
+        </td>
+    </tr>
+    </tr>
+        <tr>
+        <td>1.0.4i</td>
+        <td>18.11.20</td>
+        <td>SOP_ME_2020</td>
+        <td>v1.0.4i</td>
+        <td>
+            <ul>
+                <li>Fall Back to no-mutex usage for wolfSSL_shutdown.</li>
+            </ul>
+        </td>
+    </tr>
+	</tr>
+        <tr>
+        <td>1.0.4h</td>
+        <td>17.11.20</td>
+        <td>SOP_ME_2020</td>
+        <td>v1.0.4h</td>
+        <td>
+            <ul>
+                <li>Improved Unit Test.</li>
+                <li>Updated to WolfSSL 4.5.0.</li>
+                <li>TLS 1.3 suppport in WolfSSL cert-based engine.</li>
+                <li>Improved CMakefile and repository structure.</li>
+                <li>Fixed UserIOStream bug - return user implementaion in isOpen and isClose instead of defualt value.</li>
+                <li>Removed close server after failed "doSSLHandshake"</li>
+            </ul>
+        </td>
+    </tr>
+	</tr>
+        <tr>
+        <td>1.0.4g</td>
+        <td>29.10.20</td>
+        <td>SOP_ME_2020</td>
+        <td>v1.0.4g</td>
+        <td>
+            <ul>
+                <li>removed wolfSSL_CTX_set_verify - SSL_VERIFY_PEER mode is turned on by default</li>
+            </ul>
+        </td>
+    </tr>
+    </tr>
+        <tr>
+        <td>1.0.4f</td>
+        <td>26.10.20</td>
+        <td>SOP_ME_2020</td>
+        <td>v1.0.4f</td>
+        <td>
+            <ul>
+                <li>wolfSSL_get_peer_chain is used instead of wolfSSL_SESSION_get_peer_chain</li>
+            </ul>
+        </td>
+    </tr>
+    </tr>
+        <tr>
+        <td>1.0.4e</td>
+        <td>19.10.20</td>
+        <td>SOP_ME_2020</td>
+        <td>v1.0.4e</td>
+        <td>
+            <ul>
+                <li>Supported Elliptic Curves Extension with wolfSSL</li>
+            </ul>
+        </td>
+    </tr>
+    </tr>
+        <tr>
+        <td>1.0.4d</td>
+        <td>05.08.20</td>
+        <td>SOP_ME_2020</td>
+        <td>v1.0.4d</td>
+        <td>
+            <ul>
+                <li>Fixed the stream usage by distinguishing between the user's stream implementation and the library's stream implementation</li>
+            </ul>
+        </td>
+    </tr>
+    </tr>
+        <tr>
+        <td>1.0.4c</td>
+        <td>27.07.20</td>
+        <td>SOP_ME_2020</td>
+        <td>v1.0.4c</td>
+        <td>
+            <ul>
+                <li>Fixed the stream and the engines implementation to support multi-threaded systems</li>
+            </ul>
+        </td>
+    </tr>
+        <tr>
+        <td>1.0.4b</td>
+        <td>22.06.20</td>
+        <td>SOP_ME_2020</td>
+        <td>v1.0.4b</td>
+        <td>
+            <ul>
+                <li>Fixed creation of multiple connections with different security levels & ports in wolfSSL PSK engine</li>
+            </ul>
+        </td>
+    </tr>
+    <tr>
+        <td>1.0.4a</td>
+        <td>26.05.20</td>
+        <td>SOP_ME_2020</td>
+        <td>v1.0.4a</td>
+        <td>
+            <ul>
+                <li>Fixed creation of multiple connections with different security levels in wolfSSL PSK engine</li>
+                <li>Fixed stream closing on error issues</li>
+                <li>Minor naming, documentation and readability fixes</li>
+            </ul>
+        </td>
+    </tr>
+    <tr>
+        <td>1.0.4</td>
+        <td>17.02.20</td>
+        <td>SOP_ME_2020</td>
+        <td>v1.0.4</td>
+        <td>
+            <ul>
+                <li>CiphersuitesId is represented by string</li>
+                <li>New Wolfssl version in use 4.3.0</li>
+            </ul>
+        </td>
+    </tr>
+    <tr>
+        <td>1.0.3</td>
+        <td>15.01.20</td>
+        <td>SOP_ME_2020</td>
+        <td>v1.0.3</td>
+        <td>
+            <ul>
+                <li>Support single-sided authentication</li>
+                <li>Support multiple ciphersuites for cert-based</li>
+                <li>Support certPinning using EC certificates</li>
+                <li>Updated documentation</li>
+            </ul>
+        </td>
+    </tr>
+    <tr>
+        <td>1.0.2</td>
+        <td>01.12.19</td>
+        <td>SOP_ME_2020</td>
+        <td>v1.0.2</td>
+        <td>
+	    <ul>
+                <li>Fix IOStream headers</li>
+                <li>Update MockTEE</li>
+            </ul>
+        </td>
+    </tr>
+    <tr>
+        <td>1.0.1</td>
+        <td>03.11.19</td>
+        <td>SOP_ME_2020</td>
+        <td>v1.0.1</td>
+        <td>
+            <ul>
+                <li>Fixed API</li>
+                <li>Changed signedness of some parameters</li>
+            </ul>
+        </td>
+    </tr>
+    <tr>
+        <td>1.0.0</td>
+        <td>02.09.19</td>
+        <td>SOP_ME_2020</td>
+        <td>v1.0.0</td>
+        <td>
+            <ul>
+                <li>Added server name indication (SNI) support</li>
+                <li>Fixed shutdown issues</li>
+            </ul>
+        </td>
+    </tr>
+    <tr>
+        <td>1.0.0 RC8a</td>
+        <td>04.08.19</td>
+        <td>SOP_ME_2020</td>
+        <td>RC8a</td>
+        <td>
+            <ul>
+                <li>Replaced TEE mock</li>
+                <li>Added TEE error codes</li>
+                <li>Enabled usage of PSK key of size 256 & 512 in addition to 128 bit</li>
+                <li>Added functionality for creating socket on already accepted connection FD</li>
+            </ul>
+        </td>
+    </tr>
+
+    <tr>
+        <td>1.0.0 RC7b</td>
+        <td>01.07.19</td>
+        <td>RC7</td>
+        <td></td>
+        <td>
+            <ul>
+                <li>added certificate pinning</li>
+            </ul>
+        </td>
+    </tr>
+    <tr>
+        <td>1.0.0 RC7a</td>
+        <td>27.06.19</td>
+        <td>RC7</td>
+        <td>v1.0.0_RC7</td>
+        <td>
+            <ul>
+                <li>added OCSP stapling</li>
+                <li>added cert pinning (Botan only)</li>
+                <li>added support for TLS alert codes</li>
+                <li>extended botan for dropTLS support</li>
+            </ul>
+        </td>
+    </tr>
+    <tr>
+        <td>1.0.0 RC6c</td>
+        <td>18.04.19</td>
+        <td>RC6c Cert POC</td>
+        <td></td>
+        <td><ul><li>Adaptions for the e3 SW-PAC</li></ul></td>
+    </tr>
+    <tr>
+        <td>1.0.0 RC6b</td>
+        <td>18.04.19</td>
+        <td>RC6b PSK POC</td>
+        <td></td>
+        <td><ul><li>Adaptions for the e3 SW-PAC</li></ul></td>
+    </tr>
+    <tr>
+        <td>1.0.0 RC6a</td>
+        <td>07.03.19</td>
+        <td>RC6_pre</td>
+        <td></td>
+        <td>
+            <ul>
+                <li>adding support for certificate based client</li>
+                <li>refactor botan engine</li>
+                <li>refactor wolfssl engine</li>
+            </ul>
+        </td>
+    </tr>
+    <tr>
+        <td>1.0.0 RC5b</td>
+        <td>04.03.19</td>
+        <td>master</td>
+        <td></td>
+        <td>
+            <ul>
+                <li>fixed non-blocking send</li>
+                <li>fix IPv6 bind failure</li>
+                <li>added new logging mechanism</li>
+            </ul>
+        </td>
+    </tr>
+    <tr>
+        <td>1.0.0 RC5a</td>
+        <td>18.02.19</td>
+        <td>master</td>
+        <td></td>
+        <td>
+            <ul>
+                <li>adding clinet/server hint</li>
+                <li>update of readme file, to refect the last deliries</li>
+                <li>cleanup of API</li>
+                <li>adding session creation using file-descriptor</li>
+                <li>separating the build process(engine and library)</li>
+            </ul>
+        </td>
+    </tr>
+    <tr>
+        <td>1.0.0 RC4 Preview </td>
+        <td>05.12.18</td>
+        <td>rc4_pre</td>
+        <td></td>
+        <td>
+            <ul>
+                <li> Extension for viwi proxy: adding an factory to upgrade a server socket.</li>
+                <li> Extension for MOD to support certificate based TLS</li>
+            </ul>
+        </td>
+    </tr>
+    <tr>
+        <td>1.0.0 RC3f</td>
+        <td>24.01.19</td>
+        <td>master</td>
+        <td></td>
+        <td>
+            <ul>
+                <li>adding test application</li>
+                <li>fixing readme.</li>
+                <li>adding gcov support</li>
+            </ul>
+        </td>
+    </tr>
+    <tr>
+        <td>1.0.0 RC3e</td>
+        <td>17.01.19</td>
+        <td>master</td>
+        <td></td>
+        <td>
+            <ul>
+                <li>fix memory leaks</li>
+            </ul>
+        </td>
+    </tr>
+    <tr>
+        <td>1.0.0 RC3d </td>
+        <td>16.12.18</td>
+        <td>master</td>
+        <td></td>
+        <td>
+            <ul>
+                <li> Adding support for non-blocking API calls</li>
+            </ul>
+        </td>
+    </tr>
+    <tr>
+        <td>1.0.0 RC3c </td>
+        <td>06.12.18</td>
+        <td>master</td>
+        <td>v1.0.0_RC3c</td>
+        <td>
+            <ul>
+                <li> This version will only contain bug fixes.</li>
+                <li> FIX of IPv6 issues. </li>
+                <li> Fix return of send/receive is an enum (TLSEngineError) </li>
+                <li> Every accept in the server sockets creates a new engine </li>
+            </ul>
+        </td>
+    </tr>
+    <tr>
+        <td>1.0.0 RC3b </td>
+        <td>15.11.18</td>
+        <td>master</td>
+        <td>v1.0.0_RC3b</td>
+        <td>
+            <ul>
+                <li> Complete the reference implementation.
+                    Adding missing function calls</li>
+                <li> Providing a verification suite which tests the implementation against the expectations. </li>
+                <li> changed to cmake for building the reference library and verification suite. </li>
+            </ul>
+        </td>
+    </tr>
+    <tr>
+        <td>1.0.0 RC3a </td>
+        <td>05.11.18</td>
+        <td></td>
+        <td>v1.0.0_RC3a</td>
+        <td>
+            <ul>
+                <li> Adding Botan SSL Support to reference implementation. </li>
+            </ul>
+        </td>
+    </tr>
+    <tr>
+        <td>1.0.0 RC3 </td>
+        <td>30.10.18</td>
+        <td></td>
+        <td>v1.0.0_RC3</td>
+        <td>
+            <ul>
+                <li> ErrorHandler use shared_ptr for inet </li>
+                <li>ErrorHandler use enum for error code</li>
+                <li>InetAddressFactory make ctor private. </li>
+                <li>add c++ style callbacks </li>
+                <li>improve return code -- setters to ctors </li>
+                <li>using Lamda expression for callback </li>
+                <li>provide a initial reference implementation </li>
+            </ul>
+        </td>
+    </tr>
+    <tr>
+        <td>Preview for 1.0.0 RC3 </td>
+        <td>25.10.18</td>
+        <td>preview_1.0.0_RC3</td>
+        <td></td>
+        <td>
+            <ul>
+                <li> ErrorHandler use shared_ptr for inet </li>
+                <li>ErrorHandler use enum for error code</li>
+                <li>InetAddressFactory make ctor private. </li>
+                <li>add c++ style callbacks </li>
+                <li>improve return code -- setters to ctors </li>
+            </ul>
+        </td>
+    </tr>
+    <tr>
+        <td>1.0.0 RC2</td>
+        <td>22.10.18</td>
+        <td>master</td>
+        <td>v1.0.0_RC2</td>
+        <td>
+            <ul>
+                <li>update of return codes (new codes added). </li>
+                <li>adding reference implementation of tlsLibrary.</li>
+                <li>adding reference project providing server and client samples.</li>
+            </ul>
+        </td>
+    </tr>
+    <tr>
+        <td>1.0.0 RC1</td>
+        <td>22.10.18</td>
+        <td>master</td>
+        <td></td>
+        <td>
+            <ul>
+                <li>Initial Version</li>
+            </ul>
+        </td>
+    </tr>
+</table>
+
+
+ */

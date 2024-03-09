@@ -1,0 +1,9 @@
+V	21201213090234Z		01	unknown	/C=AU/ST=Some-State/O=Internet Widgits Pty Ltd/CN=valid_server
+R	21201213090427Z	210106090544Z	02	unknown	/C=AU/ST=Some-State/O=Internet Widgits Pty Ltd/CN=revoked_server
+V	21201213090830Z		03	unknown	/C=AU/ST=Some-State/O=Internet Widgits Pty Ltd/CN=ocsp
+V	21201213114311Z		05	unknown	/C=AU/ST=Some-State/O=Internet Widgits Pty Ltd/CN=client
+V	310207190243Z		06	unknown	/C=AU/ST=Some-State/O=Internet Widgits Pty Ltd/CN=ecc_server
+V	310208073627Z		07	unknown	/C=AU/ST=Some-State/O=Internet Widgits Pty Ltd/CN=ecc_ocsp
+V	310208100753Z		08	unknown	/C=AU/ST=Some-State/O=Internet Widgits Pty Ltd/CN=no_authInfo_server
+V	310427123940Z		09	unknown	/C=AU/ST=Some-State/O=Internet Widgits Pty Ltd/CN=intermediate
+V	310427124538Z		0A	unknown	/C=AU/ST=Some-State/O=Internet Widgits Pty Ltd/CN=intermeidate_ee
