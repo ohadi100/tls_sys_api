@@ -38,7 +38,7 @@ class Recipe(ConanFile):
     def layout(self):
         self.folders.build = "build_sample_sink"
         self.folders.generators = join(self.folders.build, "conan")
-        self.folders.source = "test/samples/mid_demo"
+        self.folders.source = "tlsAPI-WS/test/samples/mid_demo"
 
     def requirements(self):
         self.requires(f"sysapi_tls/{self.version}@{self.namespace}")
