@@ -38,12 +38,18 @@ class Recipe(ConanFile):
     def layout(self):
         self.folders.build = "build_sample_sink"
         self.folders.generators = join(self.folders.build, "conan")
-        self.folders.source = "tlsAPI-WS/test/samples/mid_demo"
+        self.folders.source = "tlsAPI-WS/test/mid_demo"
 
     def requirements(self):
         self.requires(f"sysapi_tls/{self.version}@{self.namespace}")
         self.requires("vwos-mid-integration-model/[~3.2.3]@vwos/integration")
+        self.requires("vwos-wolfssl/[~1.0.0]@vwos/testing")
         self.requires("protobuf/[~3.21.6]@vwos/integration")
+        self.requires("vwos-mid-vector-amsr/[~1.6.0]@vwos/integration")
+        self.requires("vwos-sci-libbackend/[~6.10.0]@vwos/integration")
+        self.requires("vwos-sci-libutils/[~0.6.0]@vwos/integration")
+        self.requires("vwos-mid-integration-interfaces/[~3.5.0]@vwos/integration")
+
 
     def build_requirements(self):
         self.build_requires("vwos-mid-vector-amsr-generators/[~1.0.0]@vwos/integration")
