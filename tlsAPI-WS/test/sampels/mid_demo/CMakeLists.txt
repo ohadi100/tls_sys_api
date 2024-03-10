@@ -8,20 +8,19 @@ project(${PROJECT_NAME}
 )
 
 if (${MID_TLS_SERVER})
-    set(LOG_CTX_ID "SRC")
-    set(LOG_DESCRIPTION "MID source demo app")
+    set(LOG_CTX_ID "SERVER")
+    set(LOG_DESCRIPTION "MID server demo app")
     set(EXECUTABLE_NAME mid_tls_source)
     set(TLS_LIB tls_fm::tls_fm)
-    set(PROCESS_ARG source)
+    set(PROCESS_ARG server)
 else ()
-    set(LOG_CTX_ID "SINK")
-    set(LOG_DESCRIPTION "MID sink demo app")
+    set(LOG_CTX_ID "CLIENT")
+    set(LOG_DESCRIPTION "MID client demo app")
     set(EXECUTABLE_NAME mid_tls_sink)
     set(TLS_LIB tls_fm::tls_fm)
-    set(PROCESS_ARG sink)
+    set(PROCESS_ARG client)
 endif()
 
-include(vector-generator)
 
 set(AMSR_COMPONENTS
     amsr::applicationbase
@@ -46,7 +45,7 @@ find_package(system-diag-lib REQUIRED)
 find_package(system_diag_common REQUIRED)
 
 add_library(midSampleProtoGeneratedFiles OBJECT
-    ${CMAKE_CURRENT_SOURCE_DIR}/mid_user_sample/gen/mid_demo_msg.pb.cc
+    ${CMAKE_CURRENT_SOURCE_DIR}/gen/mid_demo_msg.pb.cc
 )
 
 # Ignore warnings for generated code.
@@ -67,15 +66,9 @@ target_link_libraries(midSampleProtoGeneratedFiles
 add_compile_definitions(AMSR_SECOC_FVM_LIB=${FVM_LIB})
 
 add_executable(${EXECUTABLE_NAME}
-    ${CMAKE_CURRENT_SOURCE_DIR}/mid_user_sample/MidUserSample.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/MidDemo.cpp
 )
 
-target_include_directories(${EXECUTABLE_NAME}
-    PUBLIC
-    ${CMAKE_CURRENT_SOURCE_DIR}/mid_user_sample/gen
-    ${CMAKE_CURRENT_SOURCE_DIR}/mid_user_sample
-)
 
 target_link_libraries(${EXECUTABLE_NAME} 
     PUBLIC  
