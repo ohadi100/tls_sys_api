@@ -33,6 +33,10 @@ class Recipe(ConanFile):
         self.requires("fnd_log/[~1.0.5]@vwos/testing")
         self.requires("sysapi_per/[~1.3.3]@vwos/testing")
         self.requires("vwos-wolfssl/[~1.0.0]@vwos/testing")
+        self.requires("vwos-mid-vector-amsr/[~1.6.0]@vwos/integration")
+        self.requires("vwos-sci-libbackend/[~6.10.0]@vwos/integration")
+        self.requires("vwos-sci-libutils/[~0.6.0]@vwos/integration")
+        self.requires("vwos-mid-integration-interfaces/[~3.5.0]@vwos/integration")
     
     def build_requirements(self):
         self.test_requires("gtest/[~1.11.0]@vwos/integration")
