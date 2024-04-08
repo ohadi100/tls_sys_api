@@ -1,0 +1,72 @@
+Guide for creating mock server for mutual certificate autentication
+
+open linux shell on your computer (we used WSL ubuntu 18.04 on ours)
+
+AND FOLLOW THIS FOUR STEP - 
+
+A )		sudo apt-get update
+		sudo apt-get install nginx
+
+B) 		sudo vi /etc/nginx/nginx.conf
+
+		add the following in the http brakets
+		
+        #indicate server
+		
+		
+		
+		server {
+			# we used localhost and port 1337, change it as you see fit
+			listen localhost:1337 ssl;
+			server_name server;
+			
+			#the protocol for our implementation
+			ssl_protocols TLSv1.2;
+
+			#where the server will find its certificates
+			ssl_certificate /etc/nginx/server_certs/server.crt;
+			
+			#where the server will find its private key
+			ssl_certificate_key /etc/nginx/server_certs/server.key;
+
+			#where the server should look for the client CA
+			ssl_client_certificate /etc/nginx/client_certs/client-ca.pem;
+
+			ssl_verify_client optional;
+
+			#the server will verify the client!
+			location / {
+					if ($ssl_client_verify != SUCCESS){
+							return 403;
+					}
+
+			}
+		}
+		
+
+
+		/*
+		i recommend setting the debug flag on to see more info about the server errors
+		find the "error_log /var/log/nginx/error.log" line and add "debug" at the end to get more data in the log
+		*/
+
+		save and exit ( ":wq" )
+
+C)     /*We used our own certs and keys, change it as you want, dont forget to change the path in the conf file accordingly*/
+
+
+		Enter to the folder "tlsAPI-WS\auxiliary_files\" and use the commands: 
+		1) sudo mkdir /etc/nginx/server_certs
+		2) sudo cp server_creds/server.key /etc/nginx/server_certs/
+		3) sudo cp server_creds/server.crt /etc/nginx/server_certs/
+		
+		4) sudo mkdir /etc/nginx/client_certs
+		5) sudo cp client-ca.pem /etc/nginx/client_certs/
+
+D)		sudo service nginx restart
+
+		1) if [ok] the server is up.		
+		   Enter PEM pass phrase: "1234"
+		
+		2) if [fail] read the error.log file for more info
+		   tail -f /var/log/nginx/error.log 

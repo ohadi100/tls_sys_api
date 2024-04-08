@@ -1,0 +1,24 @@
+diff --git a/src/lib/tls/tls_channel.h b/src/lib/tls/tls_channel.h
+--- a/src/lib/tls/tls_channel.h
++++ b/src/lib/tls/tls_channel.h
+@@ -150,6 +150,20 @@ class BOTAN_PUBLIC_API(2,0) Channel
+       */
+       void close() { send_warning_alert(Alert::CLOSE_NOTIFY); }
+ 
++      /**
++      * For close2way: Send a close notification alert but do not call reset_state()
++      */
++      void closeNoReset() {
++    	  if(!is_closed())
++    	  {
++    		  try
++    		  {
++    			  send_record(ALERT, Alert(Alert::CLOSE_NOTIFY, false).serialize());
++    		  }
++    		  catch(...) { /* swallow it */ }
++    	  }
++      }
++
+       /**
+       * @return true iff the connection is active for sending application data
+       */

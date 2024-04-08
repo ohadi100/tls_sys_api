@@ -1,0 +1,37 @@
+#!/bin/bash
+# make sure to first install enscript and weasyprint using:
+# [sudo apt-get install enscript] 
+# [pip3 install weasyprint]
+
+echo ==================== starting test2pdf ==================== 
+
+echo -------------------- performing gtest --------------------- 
+# look for the gtest in the component:
+tmpTestBin=`ls ../../bin/*_gtest`
+> tmpCtestDetailed.log
+for i in $tmpTestBin
+do
+    $i >> tmpCtestDetailed.log
+    testErrorNumber=$?
+done
+
+echo -------------------- parsing log --------------------------
+egrep '\[' ./tmpCtestDetailed.log >gtest.log
+# Green for every "[..]":
+sed -i -e 's/\[/~color{0.06 0.6 0.20}\[/g; s/\]/\]~color{0 0 0}/g' ./gtest.log
+# Red for "[  FAILED  ]":           		
+sed -i -e 's/~color{0.06 0.6 0.20}\[  FAILED  \]/~color{0.8 0 0}\[  FAILED  \]/g' ./gtest.log	
+# Color the final line in red when errors occure: 
+failedTestFinalLine=$(egrep " FAILED TEST" ./tmpCtestDetailed.log)
+echo ~color{0.8 0 0}$failedTestFinalLine~color{0 0 0} >>gtest.log
+
+echo -------------------- generating PDF -----------------------
+outputDir="../../../doc"
+rm $outputDir/google_test_report_*
+enscript -e~ gtest.log -o - | ps2pdf - $outputDir/google_test_report_`date +'%d.%m.%y'`.pdf
+
+echo -------------------- cleaning files -----------------------
+rm ./tmpCtestDetailed.log
+rm ./gtest.log
+echo ==================== test2pdf finished	====================
+exit $testErrorNumber
