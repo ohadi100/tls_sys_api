@@ -1,146 +1,90 @@
 /**
+ * @file TLSResult.h
+ * @brief Defines a template struct for returning operation results in the TLS API.
  *
- * \copyright
- * (c) 2022, 2023 CARIAD SE, All rights reserved.
- *
- * NOTICE:
- *
- * All the information and materials contained herein, including the
- * intellectual and technical concepts, are the property of CARIAD SE and may
- * be covered by patents, patents in process, and are protected by trade
- * secret and/or copyright law.
- *
- * The copyright notice above does not evidence any actual or intended
- * publication or disclosure of this source code, which includes information
- * and materials that are confidential and/or proprietary and trade secrets of
- * CARIAD SE.
- *
- * Any reproduction, dissemination, modification, distribution, public
- * performance, public display of or any other use of this source code and/or
- * any other information and/or material contained herein without the prior
- * written consent of CARIAD SE is strictly prohibited and in violation of
- * applicable laws.
- *
- * The receipt or possession of this source code and/or related information
- * does not convey or imply any rights to reproduce, disclose or distribute
- * its contents or to manufacture, use or sell anything that it may describe
- * in whole or in part.
+ * TLSResult is used across the TLS API to return operation results. It encapsulates either a payload on success
+ * or an error code on failure, providing a mechanism to handle errors and successful outcomes uniformly.
  */
 
 #ifndef SRC_TLSRESULT_H_
 #define SRC_TLSRESULT_H_
 
-#include <TLSReturnCodes.h>
-#include <memory>
-#include <cassert>
+#include "TLSReturnCodes.h"
 
-#include "vwgtypes.h"
+namespace vwg {
+namespace tls {
 
-
-using namespace vwg::types;
-
-namespace vwg
-{
-namespace tls
-{
 /**
- * \brief  This is a struct to return the return code or the value in case the operation is performed successful.
- * Basically it will take a payload or an return code. One can assume that the paylod is empty if the operation failed.
- * One have to use failed or succeeded first to check if the payload is set or not first.
- * Currently it is assumed that the access of a empty payload will fail and an error is raised.
+ * @brief A template struct that encapsulates the result of an operation, including a return code and a payload.
+ *
+ * @tparam T The type of the payload contained in the result.
  */
 template <class T>
 struct TLSResult {
     using TT = TLSResult<T>;
 
 private:
-    Boolean        m_isEmpty;
-    TLSReturnCodes m_rc;
-    T              m_payload;
+    Boolean        m_isEmpty;     ///< Indicates if the result contains a payload.
+    TLSReturnCodes m_rc;          ///< The return code of the operation.
+    T              m_payload;     ///< The payload of the operation, valid only if the operation succeeded.
 
 public:
+    /**
+     * @brief Default constructor. Represents an empty result with an error code.
+     */
     TLSResult()
-      : m_isEmpty(true)
-      , m_rc(RC_TLS_PROGRAMMING_ERROR_RESULT){};
+      : m_isEmpty(true), m_rc(RC_TLS_PROGRAMMING_ERROR_RESULT) {};
 
+    /**
+     * @brief Constructs a result with an error code.
+     * @param code The error code.
+     */
     TLSResult(TLSReturnCodes code)
-      : m_isEmpty(true)
-      , m_rc(code){};
+      : m_isEmpty(true), m_rc(code) {};
 
+    /**
+     * @brief Constructs a result with a payload.
+     * @param payload The payload.
+     */
     TLSResult(T payload)
-      : m_isEmpty(false)
-      , m_rc(RC_TLS_SUCCESSFUL)
-      , m_payload(payload){
-
-        };
-
-
-    TT&
-    operator=(const TT& other)
-    {
-        // check for self-assignment
-        if (&other == this)
-            return *this;
-
-        this->m_isEmpty = other.m_isEmpty;
-        this->m_rc      = other.m_rc;
-        if (!m_isEmpty) {
-            this->m_payload = other.m_payload;
-        }
-        return *this;
-    }
-
+      : m_isEmpty(false), m_rc(RC_TLS_SUCCESSFUL), m_payload(payload) {};
 
     /**
-     * \brief Checks if the operation failed.
-     *
-     * \return true if operation failed and the payload is empty.
+     * @brief Checks if the operation succeeded.
+     * @return True if the operation was successful, otherwise false.
      */
-    inline bool
-    failed()
-    {
-        return !succeeded();
-    };
-
-    /**
-     * \brief Checks if the operation failed.
-     *
-     * \return true if operation failed and the payload is not empty.
-     */
-    inline bool
-    succeeded()
-    {
+    inline bool succeeded() {
         return (m_rc == RC_TLS_SUCCESSFUL);
     }
 
     /**
-     * \brief Gets the payload.
-     * <b>Caution!</> this will raise an error if the payload is empty. please check the result with failed and
-     * succeeded before hand.
-     *
-     * \return the payload.
+     * @brief Checks if the operation failed.
+     * @return True if the operation failed, otherwise false.
      */
-    T
-    getPayload()
-    {
+    inline bool failed() {
+        return !succeeded();
+    }
+
+    /**
+     * @brief Returns the payload of the operation.
+     * @note This operation will assert if the payload is empty.
+     * @return The payload.
+     */
+    T getPayload() {
         assert(!m_isEmpty);
         return m_payload;
     }
 
     /**
-     * \brief Gets the error code.
-     *
-     * \return the error code.
+     * @brief Returns the error code of the operation.
+     * @return The error code.
      */
-    TLSReturnCodes
-    getErrorCode()
-    {
+    TLSReturnCodes getErrorCode() {
         return m_rc;
     }
 };
 
-
-} /* namespace tls */
-} /* namespace vwg */
+} // namespace tls
+} // namespace vwg
 
 #endif /* SRC_TLSRESULT_H_ */
