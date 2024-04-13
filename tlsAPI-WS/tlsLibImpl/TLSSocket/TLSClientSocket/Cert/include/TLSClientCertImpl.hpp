@@ -1,6 +1,13 @@
 /**
+ * @file TLSClientCertImpl.h
+ * @brief Defines the TLSClientCertImpl class which implements ITLSClientSocket interface for TLS client certificate operations.
  *
- * \copyright
+ * This file provides the class definition for TLSClientCertImpl, which is responsible for managing
+ * TLS client socket operations using client certificates. It handles the creation of TLS sessions,
+ * managing socket connections, and performing socket operations in a secure manner with the use of
+ * client certificates.
+ *
+ * @copyright
  * (c) 2022, 2023 CARIAD SE, All rights reserved.
  *
  * NOTICE:
@@ -39,81 +46,59 @@
 
 using vwg::tls::SPIInetAddress;
 
-namespace vwg
-{
-namespace tls
-{
-namespace impl
-{
+namespace vwg {
+namespace tls {
+namespace impl {
 
-    class TLSClientCertImpl : public ITLSClientSocket
-    {
+/**
+ * @class TLSClientCertImpl
+ * @brief Implements ITLSClientSocket for handling TLS client socket operations using certificates.
+ *
+ * This class manages the secure client socket operations, including connecting, sending, and receiving data
+ * over TLS using client certificates. It utilizes ITLSEngine for establishing and maintaining the secure connection.
+ */
+class TLSClientCertImpl : public ITLSClientSocket {
+public:
+    /**
+     * @brief Constructs a TLSClientCertImpl with the specified parameters.
+     *
+     * Initializes a TLS client socket with configuration for certificates, cipher suites, and optional settings.
+     *
+     * @param stream A shared pointer to the underlying IO stream interface.
+     * @param hostName Host name or IP address for the TLS connection.
+     * @param certStoreId Identifier for the certificate store.
+     * @param clientCertificateSetID Identifier for the client certificate set.
+     * @param cipherSuiteIds List of cipher suite IDs to be used.
+     * @param cipherSuiteSettings Settings for cipher suite use cases.
+     * @param checkTime Settings for time validation.
+     * @param httpPublicKeyPinningHashs List of SHA-256 hashes for HTTP public key pinning.
+     * @param revocationCheckEnabled Flag to enable/disable certificate revocation check.
+     * @param ocspHandler A shared pointer to the OCSP handler.
+     * @param ocspTimeoutMs Timeout in milliseconds for OCSP responses.
+     * @param isFdManagedLocal Flag to manage file descriptor locally.
+     * @param alpnMode ALPN mode to be used.
+     */
+    TLSClientCertImpl(const std::shared_ptr<IOStreamIf>& stream,
+                      const std::string& hostName,
+                      const CertStoreID& certStoreId,
+                      const ClientCertificateSetID& clientCertificateSetID,
+                      const CipherSuiteIds& cipherSuiteIds,
+                      const TLSCipherSuiteUseCasesSettings& cipherSuiteSettings,
+                      const TimeCheckTime& checkTime,
+                      const std::vector<HashSha256>& httpPublicKeyPinningHashs,
+                      const bool revocationCheckEnabled,
+                      const std::shared_ptr<ITLSOcspHandler>& ocspHandler,
+                      const uint32_t ocspTimeoutMs,
+                      bool isFdManagedLocal = true,
+                      const AlpnMode& alpnMode = ALPN_OFF) noexcept;
 
-    public:
-        TLSClientCertImpl(const std::shared_ptr<IOStreamIf>&        stream,
-                          const std::string&                        hostName,
-                          const CertStoreID&                        certStoreId,
-                          const ClientCertificateSetID&             clientCertificateSetID,
-                          const CipherSuiteIds&                     cipherSuiteIds,
-                          const TLSCipherSuiteUseCasesSettings&     cipherSuiteSettings,
-                          const TimeCheckTime&                      checkTime,
-                          const std::vector<HashSha256>&            httpPublicKeyPinningHashs,
-                          const bool                                revocationCheckEnabled,
-                          const std::shared_ptr<ITLSOcspHandler>&   ocspHandler,
-                          const uint32_t                            ocspTimeoutMs,
-                          bool                                      isFdManagedLocal    = true,
-                          const AlpnMode&                           alpnMode            = ALPN_OFF) noexcept;
+    /**
+     * @brief Destructor for TLSClientCertImpl.
+     *
+     * Ensures proper cleanup of resources, especially the underlying IO stream if owned by this instance.
+     */
+    ~TLSClientCertImpl();
 
-        // The std::shared_ptr<IOStream> member is destroyed and its memory deallocated when the counter is 0.
-        // option 1: the TLSServerSocketImpl owns the object. In TLSClientCertImpl destruction - the counter reaches 0 and the IOstream is destroyed.
-        // option 2: the user owns the object. In TLSClientCertImpl destruction - The counter does not reaches 0 and the IOstream is not destroyed.
-        ~TLSClientCertImpl();
-
-        virtual TLSResult<std::shared_ptr<ITLSSessionEndpoint>> connect() override;
-
-        virtual Boolean isConnectionSocket() override;
-
-        virtual void close() override;
-
-        virtual Boolean isClosed() override;
-
-        virtual Boolean isOpen() override;
-
-        virtual UInt16 getLocalPort() override;
-
-        virtual SPIInetAddress getLocalInetAddress() override;
-
-        virtual void setSoTimeout(Int32 timeout) override;
-
-        virtual int getSocketFD() override;
-
-        virtual const AlpnMode& getUsedAlpnMode() const  override;
-
-        virtual IANAProtocol getUsedProtocol() const  override;
-
-#ifndef UNIT_TEST
-        private:
-#endif
-        TLSResult<std::shared_ptr<ITLSSessionEndpoint>> createSession();
-
-        std::shared_ptr<IOStreamIf> m_stream;
-        std::shared_ptr<TLSCertEngine> m_engine;
-        const std::string m_hostName;
-        const std::string m_certStoreId;
-        const std::string m_clientCertificateSetID;
-        const CipherSuiteIds m_cipherSuiteIds;
-        const TLSCipherSuiteUseCasesSettings m_cipherSuiteSettings;
-        const TimeCheckTime m_checkTime;
-        const std::vector<HashSha256> m_httpPublicKeyPinningHashs;
-        const bool m_revocationCheckEnabled;
-        bool m_isFdManagedLocal;
-        const AlpnMode m_alpnMode;
-        std::shared_ptr<ITLSOcspHandler> m_ocspHandler;
-        const uint32_t m_ocspTimeoutMs;
-    };
-
-} // namespace impl
-} // namespace tls
-} // namespace vwg
-
-#endif //SACCESSLIB_TLSCLIENTCERTIMPL_H
+    virtual TLSResult<std::shared_ptr<ITLSSessionEndpoint>> connect() override;
+    virtual Boolean isConnectionSocket() override;
+    virtual void
