@@ -1,30 +1,26 @@
 /**
+ * @file WolfSSLPSKEngine.hpp
+ * 
+ * @brief Defines the WolfSSLPSKEngine class, an implementation of TLSEngine using WolfSSL with Pre-Shared Key support.
+ * 
+ * This class handles TLS operations using the WolfSSL library, specifically configured to use pre-shared keys for
+ * encryption. This includes functionalities such as initiating and performing TLS handshakes, encrypting and decrypting data,
+ * and handling session continuity with pre-shared keys.
  *
- * \copyright
+ * @version 1.0
+ * @date 2023
+ *
+ * @copyright
  * (c) 2022, 2023 CARIAD SE, All rights reserved.
  *
  * NOTICE:
+ * All information and materials herein, including intellectual and technical concepts,
+ * are the property of CARIAD SE and protected by trade secrets, copyright, and patent laws.
+ * Unauthorized use, modification, or distribution of this software or its components is strictly prohibited and
+ * punishable by law.
  *
- * All the information and materials contained herein, including the
- * intellectual and technical concepts, are the property of CARIAD SE and may
- * be covered by patents, patents in process, and are protected by trade
- * secret and/or copyright law.
- *
- * The copyright notice above does not evidence any actual or intended
- * publication or disclosure of this source code, which includes information
- * and materials that are confidential and/or proprietary and trade secrets of
- * CARIAD SE.
- *
- * Any reproduction, dissemination, modification, distribution, public
- * performance, public display of or any other use of this source code and/or
- * any other information and/or material contained herein without the prior
- * written consent of CARIAD SE is strictly prohibited and in violation of
- * applicable laws.
- *
- * The receipt or possession of this source code and/or related information
- * does not convey or imply any rights to reproduce, disclose or distribute
- * its contents or to manufacture, use or sell anything that it may describe
- * in whole or in part.
+ * This file and the information contained within it are confidential and intended solely for the use of CARIAD SE.
+ * Disclosure outside of CARIAD SE is not permitted without prior written consent.
  */
 
 #ifndef SACCESSLIB_WOLFSSLPSKENGINE_HPP
@@ -38,90 +34,107 @@
 #include "IOStreamIf.hpp"
 #include "TLSEngine.hpp"
 
-namespace vwg
-{
-namespace tls
-{
-namespace impl
-{
+namespace vwg {
+namespace tls {
+namespace impl {
 
 /**
-* @class   WolfSSLEngine
-* @brief   The WolfSSLEngine is the WolfSSL implementation of TLSEngine.
-*/
-class WolfSSLPSKEngine : public TLSEngine
-{
+ * @class WolfSSLPSKEngine
+ * @brief The WolfSSLPSKEngine class implements TLSEngine specifically for using Pre-Shared Keys with WolfSSL.
+ *
+ * This class provides the necessary functionality to handle TLS communication using pre-shared keys,
+ * including initiating connections, performing handshakes, and data transmission while ensuring encrypted communication.
+ */
+class WolfSSLPSKEngine : public TLSEngine {
 public:
-
     /**
-     * @brief   Constructor.
-     * @param   stream - the underlying IOStreamIf used by the engine to perform actual input/output.
-     * @param   context - the shared context for the engine.
-     * @param   ssl - the ssl object for the engine.
-     * @return  None.
+     * @brief Constructor to initialize a WolfSSL-based PSK TLS engine.
+     * @param stream The IO stream interface for data transmission.
+     * @param isServer Flag indicating if this engine acts as a server.
+     * @param hint PSK identity hint to use.
+     * @param confidentiality The security level for the connection.
      */
-    WolfSSLPSKEngine(const std::shared_ptr<IOStreamIf> &stream, bool isServer, const std::string &hint, SecurityLevel confidentiality);
+    WolfSSLPSKEngine(const std::shared_ptr<IOStreamIf>& stream, bool isServer, const std::string& hint, SecurityLevel confidentiality);
 
     /**
-     * @brief   Destructor. Calls WolfSSLEngine::Close().
-     * @param   None.
-     * @return  None.
+     * @brief Destructor that cleans up WolfSSL resources.
      */
     virtual ~WolfSSLPSKEngine();
 
     /**
-     * @brief   Perform the TLS handshake, according to the arguments provided in the constructor. Also
-     *          initializes some WolfSSL memory constructs.
-     * @param   None.
-     * @return  None.
+     * @brief Performs the SSL/TLS handshake using PSK.
+     * @return TLSEngineError indicating the result of the handshake process.
      */
     virtual TLSEngineError DoSSLHandshake() override;
 
     /**
-     * @brief   Send a buffer to the other side.
-     * @param   buffer - an unencrypted buffer of size 'length', which will be encrypted and sent through the
-     *          underlying (inheriting) TLS engine. This argument must be pre-allocated (either statically or
-     *          dynamically) by the callee.
-     * @param   bufLength - length of unencrypted buffer.
-     * @param   actualLength - length of unencrypted buffer actually sent.
-     * @return  True of successful, false otherwise.
+     * @brief Sends data over the established TLS connection.
+     * @param data Pointer to the data buffer to send.
+     * @param bufLength Length of the data to send.
+     * @param actualLength Length of the data actually sent.
+     * @return TLSEngineError indicating the result of the send operation.
      */
-    virtual TLSEngineError Send(const uint8_t *data, int32_t bufLength, int32_t &actualLength) override;
+    virtual TLSEngineError Send(const uint8_t* data, int32_t bufLength, int32_t& actualLength) override;
 
     /**
-     * @brief   Receive a buffer from the other side.
-     * @param   buffer - a buffer of size 'bufLength' to receive the data. 'buffer' should be pre-allocated (either
-     *          statically or dynamically) by the callee.
-     * @param   bufLength - length of buffer.
-     * @param   actualLength - length of unencrypted buffer actually read.
-     * @return  True of successful, false otherwise.
+     * @brief Receives data from the established TLS connection.
+     * @param buffer Buffer to receive the data.
+     * @param bufLength Length of the buffer.
+     * @param actualLength Length of the data actually received.
+     * @return TLSEngineError indicating the result of the receive operation.
      */
-    virtual TLSEngineError Receive(uint8_t *buffer, int32_t bufLength, int32_t &actualLength) override;
+    virtual TLSEngineError Receive(uint8_t* buffer, int32_t bufLength, int32_t& actualLength) override;
 
+    /**
+     * @brief Sets the blocking mode on the underlying connection.
+     * @param blocking True to set blocking mode, false for non-blocking.
+     * @return TLSEngineError indicating the result of the operation.
+     */
     virtual TLSEngineError SetBlocking(bool blocking) override;
 
+    /**
+     * @brief Shuts down the TLS connection.
+     * @return TLSEngineError indicating the result of the shutdown operation.
+     */
     virtual TLSEngineError Shutdown() override;
 
 #ifdef TLSAPI_WITH_DROP_SUPPORT
-
+    /**
+     * @brief Drops the TLS layer from the connection, leaving a plain text connection.
+     * @return TLSEngineError indicating the result of the drop operation.
+     */
     virtual TLSEngineError DropTLS() override;
-
 #endif
 
+    /**
+     * @brief Retrieves the hint name used for the PSK.
+     * @return The PSK hint name.
+     */
     const std::string GetRemoteHintName() const override;
 
+    /**
+     * @brief Retrieves the local hint name.
+     * @return The local PSK hint name.
+     */
     const std::string GetHintName() const override;
 
     /**
-     * @brief   Close the underlying TLS connection and release any resources that are used by WolfSSL.
-     * @param   None.
-     * @return  None.
+     * @brief Closes the TLS connection and cleans up resources.
      */
     virtual void Close() override;
 
-    virtual const AlpnMode& getUsedAlpnMode() const  override;
+    /**
+     * @brief Retrieves the configured ALPN mode.
+     * @return The configured ALPN mode.
+     */
+    virtual const AlpnMode& getUsedAlpnMode() const override;
 
-    virtual IANAProtocol getUsedProtocol() const  override;
+    /**
+     * @brief Retrieves the IANA protocol used in the current connection.
+     * @return The IANA protocol.
+     */
+    virtual IANAProtocol getUsedProtocol() const override;
+
 #ifndef UNIT_TEST
 private:
 #endif
