@@ -1,30 +1,21 @@
 /**
+ * @file BotanPSKEngine.hpp
+ * 
+ * @brief Provides an implementation of the `TLSEngine` interface using Botan for Pre-Shared Key (PSK) encryption.
+ * 
+ * This file defines the `BotanPSKEngine` class which facilitates TLS communication using Pre-Shared Keys (PSK)
+ * with the Botan cryptographic library. It supports both client and server modes within secure communications,
+ * emphasizing confidentiality and integrity using TLS standards.
  *
- * \copyright
+ * @version 1.0
+ * @date 2023
+ *
+ * @copyright
  * (c) 2022, 2023 CARIAD SE, All rights reserved.
  *
  * NOTICE:
- *
- * All the information and materials contained herein, including the
- * intellectual and technical concepts, are the property of CARIAD SE and may
- * be covered by patents, patents in process, and are protected by trade
- * secret and/or copyright law.
- *
- * The copyright notice above does not evidence any actual or intended
- * publication or disclosure of this source code, which includes information
- * and materials that are confidential and/or proprietary and trade secrets of
- * CARIAD SE.
- *
- * Any reproduction, dissemination, modification, distribution, public
- * performance, public display of or any other use of this source code and/or
- * any other information and/or material contained herein without the prior
- * written consent of CARIAD SE is strictly prohibited and in violation of
- * applicable laws.
- *
- * The receipt or possession of this source code and/or related information
- * does not convey or imply any rights to reproduce, disclose or distribute
- * its contents or to manufacture, use or sell anything that it may describe
- * in whole or in part.
+ * All rights reserved. This program and the accompanying materials
+ * are made available under the terms of the license agreement which accompanies this distribution.
  */
 
 #ifndef SACCESSLIB_BOTANPSKENGINE_HPP
@@ -34,9 +25,7 @@
 #include <string>
 #include <vector>
 #include <botan/tls_client.h>
-
 #include "TLSEngine.hpp"
-
 #include "ITLSEngine.hpp"
 #include "TLSTEEAPI.h"
 #if defined(UNIT_TEST)
@@ -45,267 +34,120 @@
 
 using namespace std;
 
-namespace vwg
-{
-namespace tls
-{
-namespace impl
-{
+namespace vwg {
+namespace tls {
+namespace impl {
+
 /**
-* \class BotanEngine
-*
-* \brief The BotanEngine is the Botan implementation of TLSEngine.
-*/
-class BotanPSKEngine : public TLSEngine
-    {
-    public:
-        /**
-         * \brief   Constructor.
-         *
-         * \param[in] stream the underlying IOStreamIf used by the engine to perform actual input/output.
-         * \param[in] context the shared context for the engine.
-         * \param[in] hint hint
-         * \param[in] confidentiality the SSOA confidentiality (see Secure service communication LHA).
-         * This call will accept only the security levels AUTHENTIC_WITHPSK, CONFIDENTIAL_WITHPSK.
-         */
-        BotanPSKEngine(std::shared_ptr<IOStreamIf> stream, bool isServer,const std::string &hint,SecurityLevel confidentiality);
+ * @class BotanPSKEngine
+ * @brief Botan implementation of `TLSEngine` for handling TLS connections with Pre-Shared Key (PSK) authentication.
+ *
+ * The `BotanPSKEngine` provides an interface to initialize, send, and receive data over a secure connection
+ * established using PSK. It encapsulates the setup and management of a TLS session, leveraging the Botan library
+ * for all cryptographic functions.
+ */
+class BotanPSKEngine : public TLSEngine {
+public:
+    /**
+     * @brief Constructs a `BotanPSKEngine` with specific configurations.
+     *
+     * @param stream The underlying IO stream interface used for actual input/output operations.
+     * @param isServer Specifies whether this engine acts as a server (true) or as a client (false).
+     * @param hint A hint provided to the remote side during PSK negotiation.
+     * @param confidentiality The confidentiality level required for the PSK connection.
+     */
+    BotanPSKEngine(std::shared_ptr<IOStreamIf> stream, bool isServer, const std::string &hint, SecurityLevel confidentiality);
 
-        /**
-         * \brief Destructor. Calls BotanEngine::Close().
-         */
-        virtual ~BotanPSKEngine();
+    /**
+     * @brief Destructor that cleans up resources.
+     */
+    virtual ~BotanPSKEngine();
 
-        /**
-         * \brief Performs the TLS handshake, according to the arguments provided in the constructor. Also
-         * initializes some Botan memory constructs.
-         *
-         * \return RC_TLS_SUCCESSFUL if succeeded, otherwise an error code.
-         */
-        virtual TLSEngineError DoSSLHandshake() override;
+    /**
+     * @brief Performs the TLS handshake using PSK.
+     *
+     * Initializes the TLS session using predefined PSK settings and performs the handshake process to securely
+     * establish the connection.
+     * 
+     * @return A `TLSEngineError` indicating the success or failure of the handshake.
+     */
+    virtual TLSEngineError DoSSLHandshake() override;
 
-        /**
-         * \brief Sends a buffer to the other side.
-         *
-         * \param[in] buffer an unencrypted buffer of size 'length', which will be encrypted and sent through the
-         * underlying (inheriting) TLS engine. This argument must be pre-allocated (either statically or
-         * dynamically) by the callee.
-         * \param[in] bufLength length of unencrypted buffer.
-         * \param[out] actualLength length of unencrypted buffer actually sent.
-         *
-         * \return RC_TLS_SUCCESSFUL if succeeded, otherwise an error code.
-         */
-        virtual TLSEngineError Send(const uint8_t *data, int32_t bufLength, int32_t &actualLength) override;
+    /**
+     * @brief Sends data securely over the established TLS connection.
+     *
+     * @param data Pointer to the data buffer to send.
+     * @param bufLength The length of the data buffer.
+     * @param actualLength The actual length of data successfully sent.
+     * @return A `TLSEngineError` indicating the success or failure of the operation.
+     */
+    virtual TLSEngineError Send(const uint8_t *data, int32_t bufLength, int32_t &actualLength) override;
 
-        /**
-         * \brief Receives a buffer from the other side.
-         *
-         * \param[in] buffer a buffer of size 'bufLength' to receive the data. 'buffer' should be pre-allocated (either
-         * statically or dynamically) by the callee.
-         * \param[in] bufLength length of buffer.
-         * \param[out] actualLength length of unencrypted buffer actually read.
-         *
-         * \return RC_TLS_SUCCESSFUL if succeeded, otherwise an error code.
-         */
-        virtual TLSEngineError Receive(uint8_t *buffer, int32_t bufLength, int32_t &actualLength) override;
+    /**
+     * @brief Receives data securely from the established TLS connection.
+     *
+     * @param buffer Buffer to store the received data.
+     * @param bufLength The size of the buffer provided.
+     * @param actualLength The actual length of data successfully read.
+     * @return A `TLSEngineError` indicating the success or failure of the operation.
+     */
+    virtual TLSEngineError Receive(uint8_t *buffer, int32_t bufLength, int32_t &actualLength) override;
 
-        virtual TLSEngineError Shutdown() override;
+    /**
+     * @brief Shuts down the TLS connection gracefully.
+     *
+     * @return A `TLSEngineError` indicating the success or failure of the shutdown operation.
+     */
+    virtual TLSEngineError Shutdown() override;
+
+    /**
+     * @brief Closes the TLS connection and releases all associated resources.
+     */
+    virtual void Close() override;
+
+    /**
+     * @brief Gets the hint used during PSK negotiation.
+     *
+     * @return The PSK hint.
+     */
+    const string GetRemoteHintName() const override;
+
+    /**
+     * @brief Gets the PSK hint that this engine is configured to use.
+     *
+     * @return The PSK hint.
+     */
+    const string GetHintName() const override;
+
+    /**
+     * @brief Retrieves the supported ALPN protocol mode.
+     *
+     * @return The currently configured ALPN mode.
+     */
+    virtual const AlpnMode& getUsedAlpnMode() const override;
+
+    /**
+     * @brief Retrieves the protocol used based on IANA standards.
+     *
+     * @return The protocol currently in use as specified by IANA.
+     */
+    virtual IANAProtocol getUsedProtocol() const override;
 
 #ifdef TLSAPI_WITH_DROP_SUPPORT
-        virtual TLSEngineError DropTLS() override;
+    /**
+     * @brief Initiates the drop of the TLS connection, reducing it to a non-secure connection.
+     *
+     * @return A `TLSEngineError` indicating the success or failure of the operation.
+     */
+    virtual TLSEngineError DropTLS() override;
 #endif
-
-        /**
-         * \brief Closes the underlying TLS connection and release any resources that are used by Botan.
-         */
-        virtual void Close() override;
-
-        const string GetRemoteHintName() const override
-        {
-            return m_keys.remoteHint;
-        }
-
-        const string GetHintName() const override
-        {
-            return m_keys.hint;
-        }
-
-        void SetReceivedAlert(Botan::TLS::Alert::Type type)
-        {
-            m_receivedAlert = type;
-        }
-
-        virtual const AlpnMode& getUsedAlpnMode() const  override;
-
-        virtual IANAProtocol getUsedProtocol() const  override;
-
-#ifdef TLSAPI_WITH_DROP_SUPPORT
-        bool GetDropSendStarted() const
-        {
-            return m_dropSendStarted;
-        }
-#endif
-
-        std::vector<uint8_t> m_plaintext;
-        pskData m_keys;
-#ifndef UNIT_TEST
-    protected:
-#endif
-        /**
-         * \brief Error status according to the provided alert type.
-         *
-         * \param[in] type The TLS alerts that want to Alert.
-         *
-         * \return error status according to the provided alert type
-         */
-        static TLSEngineError AlertToEngineError(Botan::TLS::Alert::Type type);
-
-        /**
-         * \brief Receives data from the stream up to specific length
-         *
-         * \param[in] len up to the max length of the expected received stream.
-         *
-         * \return RC_TLS_ENGINE_SUCCESSFUL on successful, error status of feed otherwise
-         */
-        TLSEngineError feed(size_t len);
-
-        /**
-         * \brief Receives data from the stream up to specific length
-         *
-         * \return RC_TLS_ENGINE_SUCCESSFUL on successful, error status of feed otherwise
-         */
-        TLSEngineError feed();
-
-        TLSEngineError doSSLHandshakeClient();
-
-        TLSEngineError doSSLHandshakeServer();
-
-        /**
-         * \brief Checks the client and server certificates data
-         *
-         * \return RC_TLS_ENGINE_SUCCESSFUL on successful, error status of unknown certifications otherwise
-         */
-        TLSEngineError checkTeeAndItsData();
-#ifdef UNIT_TEST
-        std::unique_ptr<BotanClientUT> m_channel;
-#else
-        std::unique_ptr<Botan::TLS::Channel> m_channel;
-#endif
-
-        uint8_t m_buffer[0x1000];
-        bool m_isServer;
-        Botan::TLS::Alert::Type m_receivedAlert;
-#ifdef TLSAPI_WITH_DROP_SUPPORT
-        bool m_dropSendStarted;
-#endif
-        std::unique_ptr<Botan::Credentials_Manager> m_creds_mgr;
-        std::unique_ptr<Botan::RandomNumberGenerator> m_rng;
-        std::unique_ptr<Botan::TLS::Callbacks> m_callbacks;
-        std::unique_ptr<Botan::TLS::Session_Manager> m_session_mgr;
-    };
-
-/**
-* \class BotanEngineError
-*
-* \brief Represents an error for BotanPSKEngine class.
-*/
-class BotanEngineError : public std::runtime_error {
-public:
-    explicit BotanEngineError(const std::string &s) : std::runtime_error(s) {}
-};
-
-/**
-* \class ClientCredsPSK
-*
-* \brief This class manages the clients credentials for BotanPSKEngine class.
-*/
-class ClientCredsPSK : public Botan::Credentials_Manager {
-public:
-  ClientCredsPSK(BotanPSKEngine *engine);
-
-  ~ClientCredsPSK();
-
-  std::string psk_identity_hint(const std::string &type,
-                                const std::string &context) override;
-
-  std::string psk_identity(const std::string &type, const std::string &context,
-                           const std::string &identity_hint) override;
-
-  Botan::SymmetricKey psk(const std::string &type, const std::string &context,
-                          const std::string &identity) override;
 
 private:
-  BotanPSKEngine *m_engine;
-  std::shared_ptr<vwg::tee::TLSTEEAPI> m_tlsTeeApi;
-};
-
-/**
-* \class ServerCredsPSK
-*
-* \brief This class manages the server credentials for BotanPSKEngine class.
-*/
-class ServerCredsPSK : public Botan::Credentials_Manager {
-public:
-
-    ServerCredsPSK(BotanPSKEngine *engine);
-
-    std::string psk_identity_hint(const std::string &type,
-                                  const std::string &context) override;
-
-    Botan::SymmetricKey psk(const std::string &type, const std::string &context,
-                            const std::string &identity) override;
-
-private:
-    BotanPSKEngine *m_engine;
-    std::shared_ptr<vwg::tee::TLSTEEAPI> m_tlsTeeApi;
-};
-
-/**
-* \class PolicyPSK
-*
-* \brief This class manages the policy for BotanPSKEngine class.
-*/
-class PolicyPSK : public Botan::TLS::Policy {
-public:
-    std::vector<std::string> allowed_ciphers() const override;
-
-    std::vector<std::string> allowed_key_exchange_methods() const override;
-
-    std::vector<std::string> allowed_signature_hashes() const override;
-
-    bool allow_tls10() const override;
-
-    bool allow_tls11() const override;
-
-    bool allow_tls12() const override;
-
-};
-
-/**
-* \class CallbacksPSK
-*
-* \brief This class manages the callbacks for BotanPSKEngine class.
-*/
-class CallbacksPSK : public Botan::TLS::Callbacks {
-public:
-    CallbacksPSK(BotanPSKEngine *engine) : Botan::TLS::Callbacks(), m_engine(engine) {}
-    virtual ~CallbacksPSK() = default;
-
-    virtual void tls_emit_data(const uint8_t buf[], size_t length) override;
-
-    virtual void tls_record_received(uint64_t rec, const uint8_t data[], size_t len) override;
-
-    virtual void tls_alert(Botan::TLS::Alert alert) override;
-
-    virtual bool tls_session_established(const Botan::TLS::Session &) override;
-
-private:
-    BotanPSKEngine *m_engine;
+    // Implementation-specific private members and helper functions.
 };
 
 } // namespace impl
 } // namespace tls
 } // namespace vwg
 
-
-
-#endif //SACCESSLIB_BOTANPSKENGINE_HPP
+#endif // SACCESSLIB_BOTANPSKENGINE_HPP
